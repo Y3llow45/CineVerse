@@ -1,12 +1,11 @@
 package com.example.CineVerse.service.impl;
 
 import com.example.CineVerse.dto.AuthRequestDTO;
-import com.example.CineVerse.dto.AuthResponseDTO;
+import com.example.CineVerse.dto.AuthLoginDTO;
 import com.example.CineVerse.entity.Role;
 import com.example.CineVerse.entity.User;
 import com.example.CineVerse.exception.TodoApiException;
 import com.example.CineVerse.repository.UserRepository;
-import com.example.CineVerse.repository.RoleRepository;
 import com.example.CineVerse.security.JwtTokenProvider;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -55,9 +54,9 @@ public class AuthServiceImpl {
     }
 
     @Override
-    public String login(AuthResponseDTO authResponseDTO) {
+    public String login(AuthLoginDTO authResponseDTO) {
         Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
-                AuthResponseDTO.getUsernameOrEmail(), AuthResponseDTO.getPassword()
+                AuthLoginDTO.getUsernameOrEmail(), AuthLoginDTO.getPassword()
         ));
         SecurityContextHolder.getContext().setAuthentication(authentication);
 

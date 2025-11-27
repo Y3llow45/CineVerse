@@ -1,7 +1,7 @@
 package com.example.CineVerse.security;
 
-import com.example.todo_managment.entity.User;
-import com.example.todo_managment.repository.UserRepository;
+import com.example.CineVerse.entity.User;
+import com.example.CineVerse.repository.UserRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
