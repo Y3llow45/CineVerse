@@ -1,6 +1,6 @@
 package com.example.CineVerse.service.impl;
 
-import com.example.CineVerse.dto.AuthRequestDTO;
+import com.example.CineVerse.dto.AuthRegisterDTO;
 import com.example.CineVerse.dto.AuthLoginDTO;
 import com.example.CineVerse.entity.Role;
 import com.example.CineVerse.entity.User;
@@ -28,21 +28,21 @@ public class AuthServiceImpl {
     private JwtTokenProvider jwtTokenProvider;
 
     @Override
-    public String register(AuthRequestDTO authRequestDTO) {
+    public String register(AuthRegisterDTO authRegisterDTO) {
 
-        if (authRequestDTO.getPublicName() == null || authRequestDTO.getUsername() == null ||
-                authRequestDTO.getEmail() == null || authRequestDTO.getPassword() == null) {
+        if (authRegisterDTO.getPublicName() == null || authRegisterDTO.getUsername() == null ||
+                authRegisterDTO.getEmail() == null || authRegisterDTO.getPassword() == null) {
             throw new TodoApiException(HttpStatus.BAD_REQUEST, "All fields are required");
         }
-        if(userRepository.existsByUsername(authRequestDTO.getUsername()) || userRepository.existsByEmail(authRequestDTO.getEmail())) {
+        if(userRepository.existsByUsername(authRegisterDTO.getUsername()) || userRepository.existsByEmail(authRegisterDTO.getEmail())) {
             throw new TodoApiException(HttpStatus.CONFLICT, "Username or email already exists");
         }
 
         User user = new User();
-        user.setPublicName(authRequestDTO.getPublicName());
-        user.setUsername(authRequestDTO.getUsername());
-        user.setEmail(authRequestDTO.getEmail());
-        user.setPassword(passwordEncoder.encode(authRequestDTO.getPassword()));
+        user.setPublicName(authRegisterDTO.getPublicName());
+        user.setUsername(authRegisterDTO.getUsername());
+        user.setEmail(authRegisterDTO.getEmail());
+        user.setPassword(passwordEncoder.encode(authRegisterDTO.getPassword()));
 
         Set<Role> roles = new HashSet<>();
         Role userRole = roleRepository.findByName("ROLE_USER");
