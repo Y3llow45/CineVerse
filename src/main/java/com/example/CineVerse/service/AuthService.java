@@ -1,9 +1,10 @@
 package com.example.CineVerse.service;
 
-import com.example.CineVerse.dto.AuthRegisterDTO;
-import com.example.CineVerse.dto.AuthLoginDTO;
+import com.example.CineVerse.dto.AuthResponse;
+import com.example.CineVerse.dto.RegisterRequest;
+import com.example.CineVerse.dto.LoginRequest;
 
 public interface AuthService {
-    String register(AuthRegisterDTO authRegisterDTO);
-    String login(AuthLoginDTO authResponseDTO);
+    void register(RegisterRequest dto);
+    AuthResponse login(LoginRequest dto);
 }

@@ -7,12 +7,14 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class AuthRegisterDTO {
+public class RegisterRequest {
     @NotBlank
     private String username;
-    @NotBlank private String publicName;
+    @NotBlank
+    private String publicName;
     @NotBlank
     @Email
     private String email;
-    @NotBlank private String password;
+    @NotBlank
+    private String password;
 }
