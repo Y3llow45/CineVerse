@@ -41,9 +41,15 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/register", "/auth/**", "/css/**", "/js/**").permitAll()
+                        .requestMatchers("/login", "/register", "/auth/register", "/auth/login", "/css/**", "/js/**").permitAll()
                         .anyRequest().authenticated()
-                );
+                )
+                        .formLogin(form -> form
+                        .loginPage("/login")
+                        .loginProcessingUrl("/login")
+                        .defaultSuccessUrl("/home", true)
+                         .failureUrl("/login?error=true"));
+
 
         http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
