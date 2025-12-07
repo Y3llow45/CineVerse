@@ -4,9 +4,18 @@
 <body>
 <h2 th:text="${msg}">Welcome</h2>
 
-<form th:action="@{/logout}" method="post">
-    <button type="submit">Logout</button>
-</form>
+<p><a th:href="@{/register}">Register</a></p>
+<p><a th:href="@{/login}">Login</a></p>
+
+<button onclick="logout()">Logout</button>
+
+<script>
+    function logout() {
+        localStorage.removeItem("token");
+        window.location.href = "/login";
+    }
+</script>
+
 
 </body>
 </html>

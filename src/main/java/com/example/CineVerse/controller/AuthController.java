@@ -30,4 +30,9 @@ public class AuthController {
         AuthResponse res = authService.login(dto);
         return ResponseEntity.ok(res);
     }
+
+    @PostMapping("/logout")
+    public String logout() {
+        return "redirect:/home";
+    }
 }

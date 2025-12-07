@@ -1,19 +1,47 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html>
 <body>
 <h2>Login</h2>
 
-<div th:if="${error}" style="color:red">
-    <p th:text="${error}"></p>
-</div>
+<div id="error" style="color:red"></div>
 
-<form th:action="@{/login}" method="post">
-    <input type="text" name="username" placeholder="username" required/>
-    <input type="password" name="password" placeholder="password" required/>
+<form id="loginForm">
+    <input type="text" id="username" placeholder="username or email" required/>
+    <input type="password" id="password" placeholder="password" required/>
     <button type="submit">Login</button>
 </form>
 
-<p><a th:href="@{/register}">Register</a></p>
+<script>
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const body = {
+            usernameOrEmail: document.getElementById("username").value,
+            password: document.getElementById("password").value
+        };
+
+        try {
+            const res = await fetch("/auth/login", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(body)
+            });
+
+            if (!res.ok) {
+                document.getElementById("error").innerText = "Invalid credentials";
+                return;
+            }
+
+            const data = await res.json();
+
+            localStorage.setItem("token", data.accessToken);
+
+            window.location.href = "/home";
+        } catch (err) {
+            document.getElementById("error").innerText = "Something failed";
+        }
+    });
+</script>
 
 </body>
 </html>
