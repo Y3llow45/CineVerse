@@ -16,16 +16,16 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class PageController {
     private final AuthService authService;
 
-    @GetMapping("/")
+    @GetMapping("/home")
     public String home() {
         return "home";
     }
 
     @GetMapping("/login")
-    public String login() {
+    public String login(@RequestParam(required = false) String error, Model model) {
+        if (error != null) model.addAttribute("error", "Invalid username or password");
         return "login";
     }
-
 
     @GetMapping("/register")
     public String register() {
