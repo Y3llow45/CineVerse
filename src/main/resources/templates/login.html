@@ -34,7 +34,7 @@
 
             const data = await res.json();
 
-            localStorage.setItem("token", data.accessToken);
+            localStorage.setItem("token", data.token);
 
             window.location.href = "/home";
         } catch (err) {
