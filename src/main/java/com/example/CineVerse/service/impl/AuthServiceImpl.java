@@ -72,4 +72,10 @@ public class AuthServiceImpl implements com.example.CineVerse.service.AuthServic
         Date expires = tokenProvider.getExpiryFromToken(token);
         return new AuthResponse(token, "Bearer", expires);
     }
+
+    public Authentication getAuthentication(LoginRequest dto) {
+        return authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(dto.getUsernameOrEmail(), dto.getPassword())
+        );
+    }
 }

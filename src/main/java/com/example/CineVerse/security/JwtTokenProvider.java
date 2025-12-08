@@ -7,6 +7,10 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
 
 import javax.crypto.SecretKey;
 import java.util.Date;
@@ -24,13 +28,19 @@ public class JwtTokenProvider {
         return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecretBase64));
     }
 
-    public String generateToken(org.springframework.security.core.Authentication authentication) {
-        String username = authentication.getName();
+    public String generateToken(Authentication authentication) {
+        UserDetails user = (UserDetails) authentication.getPrincipal();
         Date now = new Date();
         Date expiry = new Date(now.getTime() + jwtExpirationMs);
 
         return Jwts.builder()
-                .setSubject(username)
+                .setSubject(user.getUsername())
+                .claim("roles",
+                        user.getAuthorities()
+                                .stream()
+                                .map(GrantedAuthority::getAuthority)
+                                .toList()
+                )
                 .setIssuedAt(now)
                 .setExpiration(expiry)
                 .signWith(key(), SignatureAlgorithm.HS256)
