@@ -1,0 +1,76 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <title>Admin Panel</title>
+    <style> /* tiny layout */
+    table{width:100%;border-collapse:collapse}
+    th,td{border:1px solid #ddd;padding:8px}
+    input{padding:6px}
+    </style>
+</head>
+<body>
+<h1>Admin Panel</h1>
+
+<section>
+    <h3>Last 5 users</h3>
+    <ul>
+        <li th:each="u : ${latest}" th:text="${u.username} + ' / ' + ${u.email} + ' / ' + ${u.publicName}">sample</li>
+    </ul>
+</section>
+
+<section>
+    <h3>Search users</h3>
+    <input id="q" placeholder="username / email / publicName">
+    <button id="searchBtn">Search</button>
+</section>
+
+<section>
+    <h3>All users</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Username</th><th>Email</th><th>Public name</th></tr></thead>
+        <tbody id="rows"></tbody>
+    </table>
+
+    <div>
+        <button id="prev">Prev</button>
+        <span id="pageInfo">0</span>
+        <button id="next">Next</button>
+    </div>
+</section>
+
+<script>
+    let page = 0, size = 10;
+
+    async function load(q) {
+      const token = localStorage.getItem('token'); // optional if admin APIs require JWT
+      const url = new URL('/admin/users', location.origin);
+      url.searchParams.set('page', page);
+      url.searchParams.set('size', size);
+      if (q) url.searchParams.set('q', q);
+
+      const res = await fetch(url.toString(), {
+        headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+      });
+      if (!res.ok) { alert('failed to load users'); return; }
+      const data = await res.json();
+      const tbody = document.getElementById('rows');
+      tbody.innerHTML = '';
+      data.content.forEach(u => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${u.id}</td><td>${u.username}</td><td>${u.email}</td><td>${u.publicName}</td>`;
+        tbody.appendChild(tr);
+      });
+      document.getElementById('pageInfo').innerText = `page ${data.number} / ${data.totalPages-1 || 0}`;
+      document.getElementById('prev').disabled = data.number <= 0;
+      document.getElementById('next').disabled = data.number >= data.totalPages - 1;
+    }
+
+    document.getElementById('searchBtn').addEventListener('click', () => { page = 0; load(document.getElementById('q').value); });
+    document.getElementById('prev').addEventListener('click', () => { page = Math.max(0, page-1); load(document.getElementById('q').value); });
+    document.getElementById('next').addEventListener('click', () => { page = page+1; load(document.getElementById('q').value); });
+
+    load();
+</script>
+</body>
+</html>
