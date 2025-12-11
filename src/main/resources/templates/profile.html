@@ -1,0 +1,43 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <title>My Profile</title>
+    <style>
+        label{display:block;margin:8px 0}
+        input, textarea{width:100%;padding:6px}
+        img{max-width:120px;border-radius:8px}
+        .msg{color:green}
+        .err{color:red}
+    </style>
+</head>
+<body>
+<h2>Profile</h2>
+
+<div th:if="${error}" class="err" th:text="${error}"></div>
+<div th:if="${success}" class="msg" th:text="${success}"></div>
+
+<form th:action="@{/profile}" th:object="${profile}" method="post">
+    <label>Public name
+        <input th:field="*{publicName}" required/>
+    </label>
+
+    <label>Bio
+        <textarea th:field="*{bio}" rows="4"></textarea>
+    </label>
+
+    <label>Profile picture (url)
+        <input th:field="*{profilePictureUrl}" placeholder="https://..."/>
+    </label>
+
+    <div th:if="${profile.profilePictureUrl}">
+        <p>Preview:</p>
+        <img th:src="${profile.profilePictureUrl}" alt="avatar"/>
+    </div>
+
+    <button type="submit">Save</button>
+</form>
+
+<p><a th:href="@{/home}">Back</a></p>
+</body>
+</html>
