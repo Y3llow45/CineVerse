@@ -6,6 +6,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.time.LocalDateTime;
 import java.util.Set;
 import jakarta.persistence.*;
 import lombok.*;
@@ -37,6 +39,9 @@ public class User {
 
     private String profilePictureUrl;
     private String bio;
+
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles",
