@@ -26,8 +26,7 @@ public class UserFile {
     @Column(nullable = false)
     private String contentType;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(columnDefinition = "bytea", nullable = false)
     private byte[] data;
 
     private long size;
