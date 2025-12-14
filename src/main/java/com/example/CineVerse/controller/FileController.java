@@ -13,6 +13,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 @Controller
 @RequiredArgsConstructor
 @RequestMapping("/files")
@@ -22,22 +27,42 @@ public class FileController {
     private final UserRepository userRepository;
 
     @GetMapping
-    public String page(Model model, Authentication auth) {
+    public String page(Model model,
+                       Authentication auth,
+                       @RequestParam(required = false) String error,
+                       @RequestParam(required = false) String success) {
+
         String username = auth.getName();
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("user not found"));
 
         model.addAttribute("files", fileServiceImpl.list(user.getId()));
+
+        if (error != null) {
+            model.addAttribute("error", URLDecoder.decode(error, StandardCharsets.UTF_8));
+        }
+        if (success != null) {
+            model.addAttribute("success", "Upload successful");
+        }
+
         return "fileUpload";
     }
 
     @PostMapping("/upload")
-    public String upload(@RequestParam("file") MultipartFile file, Authentication auth) throws Exception {
+    public String upload(@RequestParam("file") MultipartFile file, Authentication auth) {
         String username = auth.getName();
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("user not found"));
 
-        fileServiceImpl.upload(user.getId(), file);
-        return "redirect:/files";
+        try {
+            fileServiceImpl.upload(user.getId(), file);
+            return "redirect:/files?success=true";
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            String msg = URLEncoder.encode(e.getMessage() == null ? "error" : e.getMessage(), StandardCharsets.UTF_8);
+            return "redirect:/files?error=" + msg;
+        } catch (IOException e) {
+            String msg = URLEncoder.encode("upload failed", StandardCharsets.UTF_8);
+            return "redirect:/files?error=" + msg;
+        }
     }
 }
