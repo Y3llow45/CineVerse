@@ -10,8 +10,13 @@
 
 <h3>Your files</h3>
 <ul>
-  <li th:each="f : ${files}">
+  <li th:each="f : ${files}" style="display:flex;align-items:center;gap:8px;">
+
+    <form th:action="@{/files/delete}" method="post" style="margin:0;">
+      <input type="hidden" name="fileId" th:value="${f.id}">
+      <button type="submit" style="color:red;">✖</button>
+    </form>
+
     <span th:text="${f.fileName}"></span>
-    (<span th:text="${f.size}"></span> bytes)
   </li>
 </ul>
