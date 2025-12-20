@@ -41,4 +41,16 @@ public class FileServiceImpl {
     public List<UserFile> list(Long userId) {
         return repo.findByUserId(userId);
     }
+
+    public void delete(Long fileId, Long userId) {
+        UserFile file = repo.findById(fileId)
+                .orElseThrow(() -> new IllegalArgumentException("file not found"));
+
+        if (!file.getUser().getId().equals(userId)) {
+            throw new IllegalStateException("not your file");
+        }
+
+        repo.delete(file);
+    }
+
 }

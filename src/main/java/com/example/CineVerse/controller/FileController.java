@@ -65,4 +65,15 @@ public class FileController {
             return "redirect:/files?error=" + msg;
         }
     }
+
+    @PostMapping("/delete")
+    public String delete(@RequestParam Long fileId, Authentication auth) {
+        String username = auth.getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow();
+
+        fileServiceImpl.delete(fileId, user.getId());
+        return "redirect:/files";
+    }
+
 }
