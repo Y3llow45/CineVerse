@@ -20,3 +20,15 @@
     <span th:text="${f.fileName}"></span>
   </li>
 </ul>
+
+<script>
+  const fileInput = document.querySelector('input[type="file"]');
+  const MAX_SIZE = 5 * 1024 * 1024;
+
+  fileInput.addEventListener('change', function() {
+      if (this.files[0] && this.files[0].size > MAX_SIZE) {
+          alert("File is too large! Maximum allowed size is 5MB.");
+          this.value = "";
+      }
+  });
+</script>
