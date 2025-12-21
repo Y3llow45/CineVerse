@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>404 Not Found</title>
+    <style>
+        body {
+            font-family: serif;
+            background: #fff;
+            color: #000;
+            padding: 40px;
+        }
+
+        .box {
+            max-width: 500px;
+            border: 1px solid #000;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-top: 0;
+        }
+
+        button {
+            margin-top: 15px;
+            padding: 4px 10px;
+            font-family: serif;
+            cursor: pointer;
+        }
+
+        a {
+            color: purple;
+        }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h1>404</h1>
+    <p>The page you are looking for does not exist.</p>
+
+    <p>
+        Redirecting to home in <span id="count">5</span> seconds...
+    </p>
+
+    <button onclick="goHome()">Go home now</button>
+
+    <p style="margin-top:15px;">
+        or <a href="/cat">click here</a>
+    </p>
+</div>
+
+<script>
+    let seconds = 5;
+    const el = document.getElementById('count');
+
+    const timer = setInterval(() => {
+        seconds--;
+        el.textContent = seconds;
+
+        if (seconds <= 0) {
+            clearInterval(timer);
+            window.location.href = '/home';
+        }
+    }, 1000);
+
+    function goHome() {
+        window.location.href = '/home';
+    }
+</script>
+
+</body>
+</html>
