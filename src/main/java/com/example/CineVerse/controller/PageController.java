@@ -19,6 +19,9 @@ public class PageController {
     private final AuthService authService;
     private final com.example.CineVerse.repository.UserRepository userRepository;
 
+    @GetMapping("/cat")
+    public String cat() {return "cat";}
+
     @GetMapping("/home")
     public String home() {
         return "home";
