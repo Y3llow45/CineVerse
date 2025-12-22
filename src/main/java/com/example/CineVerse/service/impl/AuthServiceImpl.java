@@ -10,6 +10,7 @@ import com.example.CineVerse.repository.RoleRepository;
 import com.example.CineVerse.repository.UserRepository;
 import com.example.CineVerse.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.spi.DefaultLoggingEventBuilder;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -31,6 +32,7 @@ public class AuthServiceImpl implements com.example.CineVerse.service.AuthServic
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
+    private final AuditService auditService;
 
     private final Pattern strongPassword = Pattern.compile(
             "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[\\W_]).{8,}$"
@@ -53,13 +55,12 @@ public class AuthServiceImpl implements com.example.CineVerse.service.AuthServic
         user.setEmail(dto.getEmail());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
 
-        // assign ROLE_USER
         Role userRole = roleRepository.findByName("ROLE_USER")
                 .orElseGet(() -> roleRepository.save(new Role(null, "ROLE_USER")));
         Set<Role> roles = new HashSet<>();
         roles.add(userRole);
         user.setRoles(roles);
-
+        auditService.log("REGISTER", dto.getUsername(), "self");
         userRepository.save(user);
     }
 
@@ -70,6 +71,7 @@ public class AuthServiceImpl implements com.example.CineVerse.service.AuthServic
         );
         String token = tokenProvider.generateToken(authentication);
         Date expires = tokenProvider.getExpiryFromToken(token);
+        auditService.log("LOGIN", dto.getUsernameOrEmail(), "self");
         return new AuthResponse(token, "Bearer", expires);
     }
 

@@ -17,6 +17,7 @@ public class FileServiceImpl {
 
     private final UserFileRepository repo;
     private final UserRepository userRepository;
+    private final AuditService auditService;
 
     public void upload(Long userId, MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) throw new IllegalArgumentException("empty file");
@@ -34,7 +35,7 @@ public class FileServiceImpl {
         uf.setContentType(file.getContentType() == null ? "application/octet-stream" : file.getContentType());
         uf.setData(file.getBytes());
         uf.setSize(file.getSize());
-
+        auditService.log("UPLOAD_FILE", user.getUsername(), uf.getFileName());
         repo.save(uf);
     }
 
@@ -49,7 +50,7 @@ public class FileServiceImpl {
         if (!file.getUser().getId().equals(userId)) {
             throw new IllegalStateException("not your file");
         }
-
+        auditService.log("DELETE_FILE", file.getUser().getUsername(), file.getFileName());
         repo.delete(file);
     }
 

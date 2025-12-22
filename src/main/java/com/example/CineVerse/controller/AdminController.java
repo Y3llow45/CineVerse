@@ -1,8 +1,10 @@
 package com.example.CineVerse.controller;
 
 import com.example.CineVerse.entity.User;
+import com.example.CineVerse.service.impl.AuditService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -18,13 +20,21 @@ import java.util.List;
 public class AdminController {
 
     private final com.example.CineVerse.repository.UserRepository userRepository;
+    private final AuditService auditservice;
 
     @GetMapping
-    public String adminPage(Model model) {
+    public String adminPage(Model model, Authentication auth) {
+        auditservice.log(
+                auth.getName(),
+                "ACCESS_ADMIN_PANEL",
+                "self"
+        );
+
         List<User> latest = userRepository.findTop5ByOrderByIdDesc();
         model.addAttribute("latest", latest);
         return "adminPanel";
     }
+
 
     @GetMapping("/users")
     @ResponseBody
