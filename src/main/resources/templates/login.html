@@ -8,40 +8,116 @@
 <form id="loginForm">
     <input type="text" id="username" placeholder="username or email" required/>
     <input type="password" id="password" placeholder="password" required/>
-    <button type="submit">Login</button>
+
+    <label>
+        <input type="checkbox" id="enable2fa"/> Enable / use 2FA
+    </label>
+
+    <div id="totpBox" style="display:none;margin-top:10px;">
+        <div id="qr"></div>
+        <input type="text" id="totpCode" placeholder="6-digit code"/>
+        <button type="button" id="confirmTotp">Confirm 2FA</button>
+    </div>
+
+    <button type="submit" id="loginBtn">Login</button>
 </form>
 
 <script>
-    document.getElementById("loginForm").addEventListener("submit", async (e) => {
-        e.preventDefault();
+    const form = document.getElementById("loginForm");
+    const error = document.getElementById("error");
+    const enable2fa = document.getElementById("enable2fa");
+    const totpBox = document.getElementById("totpBox");
+    const qr = document.getElementById("qr");
+    const loginBtn = document.getElementById("loginBtn");
+    const confirmBtn = document.getElementById("confirmTotp");
+    const username = document.getElementById("username");
+    const password = document.getElementById("password");
 
-        const body = {
-            usernameOrEmail: document.getElementById("username").value,
-            password: document.getElementById("password").value
-        };
+    enable2fa.addEventListener("change", async () => {
+        if (enable2fa.checked) {
+            loginBtn.disabled = true;
 
-        try {
-            const res = await fetch("/auth/login", {
+            const res = await fetch("/auth/2fa/setup", {
                 method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify(body)
+                headers: {"Content-Type":"application/json"},
+                body: JSON.stringify({
+                    usernameOrEmail: username.value,
+                    password: password.value
+                })
             });
 
             if (!res.ok) {
-                document.getElementById("error").innerText = "Invalid credentials";
+                error.innerText = "2FA setup failed";
+                enable2fa.checked = false;
+                loginBtn.disabled = false;
+                const txt = await res.text();
+                if (error.innerText == txt || error.innerText == "Request failed") {
+                    return;
+                }
                 return;
             }
 
             const data = await res.json();
-
-            localStorage.setItem("token", data.token);
-
-            window.location.href = "/home";
-        } catch (err) {
-            document.getElementById("error").innerText = "Something failed";
+            qr.innerHTML =
+                `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data.otpAuthUrl)}">`;
+            totpBox.style.display = "block";
+        } else {
+            if (!confirm("Cancel 2FA setup?")) {
+                enable2fa.checked = true;
+                return;
+            }
+            totpBox.style.display = "none";
+            qr.innerHTML = "";
+            loginBtn.disabled = false;
         }
     });
-</script>
 
+    confirmBtn.addEventListener("click", async () => {
+        const res = await fetch("/auth/2fa/confirm", {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({
+                username: username.value,
+                code: document.getElementById("totpCode").value
+            })
+        });
+
+        if (!res.ok) {
+            error.innerText = "Invalid 2FA code";
+            return;
+        }
+
+        alert("2FA enabled");
+        totpBox.style.display = "none";
+        qr.innerHTML = "";
+        enable2fa.checked = false;
+        loginBtn.disabled = false;
+    });
+
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const body = {
+            usernameOrEmail: username.value,
+            password: password.value,
+            totpCode: document.getElementById("totpCode").value || null
+        };
+
+        const res = await fetch("/auth/login", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(body)
+        });
+
+        if (!res.ok) {
+            error.innerText = "Invalid credentials or 2FA code";
+            return;
+        }
+
+        const data = await res.json();
+        localStorage.setItem("token", data.token);
+        window.location.href = "/home";
+    });
+</script>
 </body>
 </html>
