@@ -11,4 +11,9 @@ public interface AuthService {
     AuthResponse login(LoginRequest dto);
 
     Authentication getAuthentication(@Valid LoginRequest dto);
+
+    String generateTotpSetup(String usernameOrEmail);
+    boolean confirmTotpSetup(String usernameOrEmail, String code);
+    void disableTotpForUser(String usernameOrEmail);
+
 }

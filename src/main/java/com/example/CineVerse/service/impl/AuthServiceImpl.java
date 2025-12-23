@@ -9,6 +9,7 @@ import com.example.CineVerse.exception.TodoApiException;
 import com.example.CineVerse.repository.RoleRepository;
 import com.example.CineVerse.repository.UserRepository;
 import com.example.CineVerse.security.JwtTokenProvider;
+import com.example.CineVerse.security.TotpUtil;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.spi.DefaultLoggingEventBuilder;
 import org.springframework.http.HttpStatus;
@@ -69,11 +70,60 @@ public class AuthServiceImpl implements com.example.CineVerse.service.AuthServic
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(dto.getUsernameOrEmail(), dto.getPassword())
         );
+        User user = userRepository.findByUsernameOrEmail(dto.getUsernameOrEmail(), dto.getUsernameOrEmail())
+                .orElseThrow(() -> new TodoApiException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
+
+        if (user.isTotpEnabled()) {
+            if (dto.getTotpCode() == null || dto.getTotpCode().isBlank()) {
+                throw new TodoApiException(HttpStatus.UNAUTHORIZED, "TOTP_REQUIRED");
+            }
+            if (!TotpUtil.verifyCode(user.getTotpSecret(), dto.getTotpCode())) {
+                throw new TodoApiException(HttpStatus.UNAUTHORIZED, "Invalid TOTP code");
+            }
+        }
+
         String token = tokenProvider.generateToken(authentication);
         Date expires = tokenProvider.getExpiryFromToken(token);
         auditService.log("LOGIN", dto.getUsernameOrEmail(), "self");
         return new AuthResponse(token, "Bearer", expires);
     }
+
+    @Override
+    public String generateTotpSetup(String usernameOrEmail) {
+        User user = userRepository.findByUsernameOrEmail(usernameOrEmail, usernameOrEmail)
+                .orElseThrow(() -> new TodoApiException(HttpStatus.NOT_FOUND, "User not found"));
+        String secret = TotpUtil.generateSecret();
+        user.setTotpSecret(secret);
+        user.setTotpEnabled(false);
+        userRepository.save(user);
+        return TotpUtil.getOtpAuthUrl("CineVerse", user.getUsername(), secret);
+    }
+
+    @Override
+    public boolean confirmTotpSetup(String usernameOrEmail, String code) {
+        User user = userRepository.findByUsernameOrEmail(usernameOrEmail, usernameOrEmail)
+                .orElseThrow(() -> new TodoApiException(HttpStatus.NOT_FOUND, "User not found"));
+        String secret = user.getTotpSecret();
+        if (secret == null) throw new TodoApiException(HttpStatus.BAD_REQUEST, "No pending TOTP setup");
+        boolean ok = TotpUtil.verifyCode(secret, code);
+        if (ok) {
+            user.setTotpEnabled(true);
+            userRepository.save(user);
+            auditService.log("ENABLE_TOTP", usernameOrEmail, "self");
+        }
+        return ok;
+    }
+
+    @Override
+    public void disableTotpForUser(String usernameOrEmail) {
+        User user = userRepository.findByUsernameOrEmail(usernameOrEmail, usernameOrEmail)
+                .orElseThrow(() -> new TodoApiException(HttpStatus.NOT_FOUND, "User not found"));
+        user.setTotpEnabled(false);
+        user.setTotpSecret(null);
+        userRepository.save(user);
+        auditService.log("DISABLE_TOTP", usernameOrEmail, "self");
+    }
+
 
     public Authentication getAuthentication(LoginRequest dto) {
         return authenticationManager.authenticate(
