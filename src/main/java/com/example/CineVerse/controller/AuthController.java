@@ -44,6 +44,29 @@ public class AuthController {
         return ResponseEntity.ok(res);
     }
 
+    @PostMapping("/2fa/setup")
+    public ResponseEntity<?> totpSetup(@Valid @RequestBody LoginRequest dto) {
+        String otpAuthUrl = authService.generateTotpSetup(dto.getUsernameOrEmail());
+        return ResponseEntity.ok().body(java.util.Map.of("otpAuthUrl", otpAuthUrl));
+    }
+
+    @PostMapping("/2fa/confirm")
+    public ResponseEntity<?> totpConfirm(@RequestBody java.util.Map<String,String> body) {
+        String username = body.get("username");
+        String code = body.get("code");
+        boolean ok = authService.confirmTotpSetup(username, code);
+        if (!ok) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/2fa/disable")
+    public ResponseEntity<?> totpDisable(@RequestBody java.util.Map<String,String> body) {
+        String username = body.get("username");
+        authService.disableTotpForUser(username);
+        return ResponseEntity.ok().build();
+    }
+
+
     @PostMapping("/logout")
     public String logout(HttpServletRequest request) {
         HttpSession session = request.getSession(false);

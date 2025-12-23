@@ -9,8 +9,10 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.Set;
+
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.util.HashSet;
 
 @Entity
@@ -20,9 +22,13 @@ import java.util.HashSet;
                 @UniqueConstraint(columnNames = "email"),
                 @UniqueConstraint(columnNames = "public_name")
         })
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class User {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "public_name", nullable = false)
@@ -42,6 +48,12 @@ public class User {
 
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    @Column(name = "totp_secret")
+    private String totpSecret;
+
+    @Column(name = "totp_enabled", nullable = false)
+    private boolean totpEnabled = false;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles",
