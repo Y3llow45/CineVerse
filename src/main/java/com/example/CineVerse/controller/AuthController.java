@@ -32,18 +32,33 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest dto,
-                                              HttpServletRequest request) {
-        AuthResponse res = authService.login(dto);
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest dto,
+                                   HttpServletRequest request) {
+        try {
+            AuthResponse res = authService.login(dto);
 
-        Authentication authentication = authService.getAuthentication(dto);
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        HttpSession session = request.getSession(true);
-        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-                SecurityContextHolder.getContext());
+            Authentication authentication = authService.getAuthentication(dto);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            HttpSession session = request.getSession(true);
+            session.setAttribute(
+                    HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                    SecurityContextHolder.getContext()
+            );
 
-        return ResponseEntity.ok(res);
+            return ResponseEntity.ok(res);
+
+        } catch (TodoApiException e) {
+            if ("TOTP_REQUIRED".equals(e.getMessage())) {
+                return ResponseEntity
+                        .status(HttpStatus.UNAUTHORIZED)
+                        .body("TOTP_REQUIRED");
+            }
+            return ResponseEntity
+                    .status(e.getHttpStatus())
+                    .body(e.getMessage());
+        }
     }
+
 
     @PostMapping("/2fa/setup")
     public ResponseEntity<?> totpSetup(@Valid @RequestBody LoginRequest dto) {
