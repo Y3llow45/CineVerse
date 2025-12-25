@@ -1,123 +1,211 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <meta charset="utf-8" />
+    <title>Login</title>
+    <style>
+        body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; max-width:560px; margin:40px auto; }
+        input { display:block; width:100%; padding:8px; margin:8px 0; box-sizing:border-box; }
+        button { padding:8px 12px; margin:6px 4px 0 0; }
+        #error { color:#b50000; margin:8px 0; min-height:18px; }
+        #totpBox, #twoStepPrompt { border:1px solid #eee; padding:12px; margin-top:12px; display:none; background:#fafafa }
+        #qr img { display:block; margin:0 0 8px 0; }
+        .muted { color:#666; font-size:0.9rem; margin-top:6px; }
+    </style>
+</head>
 <body>
 <h2>Login</h2>
 
-<div id="error" style="color:red"></div>
+<div id="error"></div>
 
 <form id="loginForm">
-    <input type="text" id="username" placeholder="username or email" required/>
-    <input type="password" id="password" placeholder="password" required/>
+    <input type="text" id="username" placeholder="username or email" required />
+    <input type="password" id="password" placeholder="password" required />
 
-    <label>
-        <input type="checkbox" id="enable2fa"/> Enable / use 2FA
-    </label>
-
-    <div id="totpBox" style="display:none;margin-top:10px;">
+    <div id="totpBox">
         <div id="qr"></div>
-        <input type="text" id="totpCode" placeholder="6-digit code"/>
-        <button type="button" id="confirmTotp">Confirm 2FA</button>
+        <input type="text" id="totpCode" placeholder="6-digit code" />
+        <div style="margin-top:8px;">
+            <button type="button" id="confirmTotp">Confirm 2FA</button>
+            <button type="button" id="cancelSetup">Cancel</button>
+        </div>
+        <div class="muted">Scan the QR, enter the 6-digit code then press Confirm. Cancel stops setup.</div>
     </div>
 
-    <button type="submit" id="loginBtn">Login</button>
+    <div style="margin-top:12px;">
+        <button type="submit" id="loginBtn">Login</button>
+    </div>
 </form>
 
+<!-- Shown only when server requires TOTP after password check -->
+<div id="twoStepPrompt">
+    <h3>Two-factor required</h3>
+    <div id="twoError" style="color:#b50000;"></div>
+    <input type="text" id="twoTotp" placeholder="Enter 6-digit 2FA code" />
+    <div style="margin-top:8px;">
+        <button id="twoContinue">Continue</button>
+        <button id="twoBack">Back to login</button>
+    </div>
+    <div class="muted" id="attemptsInfo"></div>
+</div>
+
 <script>
-    const form = document.getElementById("loginForm");
-    const error = document.getElementById("error");
-    const enable2fa = document.getElementById("enable2fa");
-    const totpBox = document.getElementById("totpBox");
-    const qr = document.getElementById("qr");
-    const loginBtn = document.getElementById("loginBtn");
-    const confirmBtn = document.getElementById("confirmTotp");
-    const username = document.getElementById("username");
-    const password = document.getElementById("password");
+    (async function(){
+      const loginForm = document.getElementById('loginForm');
+      const username = document.getElementById('username');
+      const password = document.getElementById('password');
+      const totpBox = document.getElementById('totpBox');
+      const qr = document.getElementById('qr');
+      const confirmTotp = document.getElementById('confirmTotp');
+      const cancelSetup = document.getElementById('cancelSetup');
+      const loginBtn = document.getElementById('loginBtn');
+      const error = document.getElementById('error');
 
-    enable2fa.addEventListener("change", async () => {
-        if (enable2fa.checked) {
-            loginBtn.disabled = true;
+      const twoStepPrompt = document.getElementById('twoStepPrompt');
+      const twoTotp = document.getElementById('twoTotp');
+      const twoContinue = document.getElementById('twoContinue');
+      const twoBack = document.getElementById('twoBack');
+      const twoError = document.getElementById('twoError');
+      const attemptsInfo = document.getElementById('attemptsInfo');
 
-            const res = await fetch("/auth/2fa/setup", {
-                method: "POST",
-                headers: {"Content-Type":"application/json"},
-                body: JSON.stringify({
-                    usernameOrEmail: username.value,
-                    password: password.value
-                })
-            });
+      let twoAttempts = 3;
+      let pendingLoginPayload = null;
 
-            if (!res.ok) {
-                error.innerText = "2FA setup failed";
-                enable2fa.checked = false;
-                loginBtn.disabled = false;
-                const txt = await res.text();
-                if (error.innerText == txt || error.innerText == "Request failed") {
-                    return;
-                }
-                return;
-            }
+      function clearError() { error.innerText = ''; twoError.innerText = ''; }
 
-            const data = await res.json();
-            qr.innerHTML =
-                `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data.otpAuthUrl)}">`;
-            totpBox.style.display = "block";
-        } else {
-            if (!confirm("Cancel 2FA setup?")) {
-                enable2fa.checked = true;
-                return;
-            }
-            totpBox.style.display = "none";
-            qr.innerHTML = "";
-            loginBtn.disabled = false;
-        }
-    });
-
-    confirmBtn.addEventListener("click", async () => {
-        const res = await fetch("/auth/2fa/confirm", {
-            method: "POST",
-            headers: {"Content-Type":"application/json"},
-            body: JSON.stringify({
-                username: username.value,
-                code: document.getElementById("totpCode").value
-            })
-        });
-
-        if (!res.ok) {
-            error.innerText = "Invalid 2FA code";
-            return;
-        }
-
-        alert("2FA enabled");
-        totpBox.style.display = "none";
-        qr.innerHTML = "";
-        enable2fa.checked = false;
+      cancelSetup.addEventListener('click', () => {
+        if (!confirm('Cancel 2FA setup?')) return;
+        totpBox.style.display = 'none';
+        qr.innerHTML = '';
         loginBtn.disabled = false;
-    });
+        clearError();
+      });
 
-    form.addEventListener("submit", async (e) => {
-        e.preventDefault();
+      confirmTotp.addEventListener('click', async () => {
+        clearError();
+        const code = document.getElementById('totpCode').value.trim();
+        if (!code) { error.innerText = 'Enter 2FA code'; return; }
+        try {
+          const res = await safeFetch('/auth/2fa/confirm', { method:'POST', body: { username: username.value, code } });
+          if (!res.ok) {
+            const txt = await res.text();
+            error.innerText = txt || 'Invalid 2FA code';
+            return;
+          }
+          alert('2FA enabled');
+          totpBox.style.display = 'none';
+          qr.innerHTML = '';
+          loginBtn.disabled = false;
+        } catch (err) {
+          error.innerText = 'Request failed';
+        }
+      });
 
-        const body = {
-            usernameOrEmail: username.value,
-            password: password.value,
-            totpCode: document.getElementById("totpCode").value || null
+      loginForm.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        clearError();
+        loginBtn.disabled = true;
+
+        const payload = {
+          usernameOrEmail: username.value,
+          password: password.value
         };
 
-        const res = await fetch("/auth/login", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify(body)
-        });
-
-        if (!res.ok) {
-            error.innerText = "Invalid credentials or 2FA code";
+        try {
+          const res = await safeFetch('/auth/login', { method:'POST', body: payload });
+          if (res.ok) {
+            const data = await res.jsonSafe();
+            localStorage.setItem('token', data.token);
+            window.location.href = '/home';
             return;
-        }
+          }
 
-        const data = await res.json();
-        localStorage.setItem("token", data.token);
-        window.location.href = "/home";
-    });
+          const text = await res.text();
+          if (text && text.toUpperCase().includes('TOTP_REQUIRED')) {
+            pendingLoginPayload = payload;
+            showTwoStep();
+            return;
+          }
+
+          error.innerText = text || 'Invalid credentials';
+        } catch (err) {
+          error.innerText = 'Request failed';
+        } finally {
+          loginBtn.disabled = false;
+        }
+      });
+
+      async function handleTwoContinue() {
+        twoError.innerText = '';
+        if (!pendingLoginPayload) {
+          twoError.innerText = 'No pending login';
+          return;
+        }
+        const code = twoTotp.value.trim();
+        if (!code) { twoError.innerText = 'Enter 2FA code'; return; }
+        twoContinue.disabled = true;
+        try {
+          const body = { ...pendingLoginPayload, totpCode: code };
+          const res = await safeFetch('/auth/login', { method:'POST', body });
+          if (res.ok) {
+            const data = await res.jsonSafe();
+            localStorage.setItem('token', data.token);
+            window.location.href = '/home';
+            return;
+          }
+          const txt = await res.text();
+          twoAttempts--;
+          if (twoAttempts > 0) {
+            twoError.innerText = (txt || 'Invalid 2FA code') + ` — ${twoAttempts} attempts left`;
+            attemptsInfo.innerText = `Attempts left: ${twoAttempts}`;
+            twoContinue.disabled = false;
+          } else {
+            twoError.innerText = 'Too many attempts — returning to login';
+            setTimeout(() => { resetToLogin(); }, 900);
+          }
+        } catch (err) {
+          twoError.innerText = 'Request failed';
+          twoContinue.disabled = false;
+        }
+      }
+
+      twoContinue.addEventListener('click', handleTwoContinue);
+      twoBack.addEventListener('click', () => { resetToLogin(); });
+
+      function showTwoStep() {
+        loginForm.style.display = 'none';
+        twoStepPrompt.style.display = 'block';
+        twoAttempts = 3;
+        attemptsInfo.innerText = `Attempts left: ${twoAttempts}`;
+        twoTotp.value = '';
+        twoError.innerText = '';
+      }
+
+      function resetToLogin() {
+        pendingLoginPayload = null;
+        twoStepPrompt.style.display = 'none';
+        loginForm.style.display = 'block';
+        twoAttempts = 3;
+        twoError.innerText = '';
+        attemptsInfo.innerText = '';
+        loginBtn.disabled = false;
+      }
+
+      // helper: safeFetch with text/json handling
+      async function safeFetch(url, opts = {}) {
+        const fetchOpts = { method: opts.method || 'GET', headers: { 'Accept': 'text/plain, application/json' } };
+        if (opts.body) {
+          fetchOpts.headers['Content-Type'] = 'application/json';
+          fetchOpts.body = JSON.stringify(opts.body);
+        }
+        const res = await fetch(url, fetchOpts);
+        res.jsonSafe = async function() {
+          const txt = await res.text();
+          try { return JSON.parse(txt); } catch(e) { return { raw: txt }; }
+        };
+        return res;
+      }
+    })();
 </script>
 </body>
 </html>

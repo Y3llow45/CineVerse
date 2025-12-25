@@ -3,6 +3,9 @@ package com.example.CineVerse.controller;
 import com.example.CineVerse.dto.AuthResponse;
 import com.example.CineVerse.dto.LoginRequest;
 import com.example.CineVerse.dto.RegisterRequest;
+import com.example.CineVerse.entity.User;
+import com.example.CineVerse.exception.TodoApiException;
+import com.example.CineVerse.repository.UserRepository;
 import com.example.CineVerse.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -13,16 +16,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
     private final AuthService authService;
+    private final UserRepository userRepository;
 
     @PostMapping("/register")
     public ResponseEntity<Void> register(@Valid @RequestBody RegisterRequest dto) {
@@ -73,4 +74,36 @@ public class AuthController {
         if (session != null) session.invalidate();
         return "redirect:/home";
     }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> me() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsernameOrEmail(username, username)
+                .orElseThrow(() -> new TodoApiException(HttpStatus.NOT_FOUND, "User not found"));
+        return ResponseEntity.ok(java.util.Map.of("username", user.getUsername(), "totpEnabled", user.isTotpEnabled()));
+    }
+
+    @PostMapping("/2fa/setup-loggedin")
+    public ResponseEntity<?> setupLoggedIn() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        String otpAuthUrl = authService.generateTotpSetup(username);
+        return ResponseEntity.ok(java.util.Map.of("otpAuthUrl", otpAuthUrl));
+    }
+
+    @PostMapping("/2fa/confirm-loggedin")
+    public ResponseEntity<?> confirmLoggedIn(@RequestBody java.util.Map<String,String> body) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        String code = body.get("code");
+        boolean ok = authService.confirmTotpSetup(username, code);
+        if (!ok) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/2fa/disable-loggedin")
+    public ResponseEntity<?> disableLoggedIn() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        authService.disableTotpForUser(username);
+        return ResponseEntity.ok().build();
+    }
+
 }

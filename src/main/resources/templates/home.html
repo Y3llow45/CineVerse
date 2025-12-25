@@ -1,6 +1,9 @@
 <!doctype html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="utf-8"><title>Home</title></head>
+<head>
+    <meta charset="utf-8">
+    <title>Home</title>
+</head>
 <body>
 <h2 th:text="${msg}">Welcome</h2>
 
@@ -13,13 +16,114 @@
 
 <button onclick="logout()">Logout</button>
 
+<hr>
+
+<div id="twofaContainer" style="display:none;">
+    <h3>Two-Factor Authentication</h3>
+    <label>
+        <input type="checkbox" id="twofaCheckbox"> Enable 2FA
+    </label>
+    <div id="setupBox" style="display:none;margin-top:10px;">
+        <div id="qr"></div>
+        <input type="text" id="codeInput" placeholder="6-digit code" />
+        <button id="confirmBtn">Confirm</button>
+        <button id="cancelBtn">Cancel</button>
+        <div id="msg" style="color:green;margin-top:8px"></div>
+        <div id="err" style="color:red;margin-top:8px"></div>
+    </div>
+</div>
+
 <script>
     function logout() {
         localStorage.removeItem("token");
         window.location.href = "/login";
     }
+
+    const twofaContainer = document.getElementById("twofaContainer");
+    const twofaCheckbox = document.getElementById("twofaCheckbox");
+    const setupBox = document.getElementById("setupBox");
+    const qr = document.getElementById("qr");
+    const codeInput = document.getElementById("codeInput");
+    const confirmBtn = document.getElementById("confirmBtn");
+    const cancelBtn = document.getElementById("cancelBtn");
+    const msg = document.getElementById("msg");
+    const err = document.getElementById("err");
+
+    const token = localStorage.getItem("token");
+
+    async function api(path, opts = {}) {
+        opts.headers = opts.headers || {};
+        if (token) opts.headers["Authorization"] = "Bearer " + token;
+        opts.headers["Content-Type"] = opts.headers["Content-Type"] || "application/json";
+        const res = await fetch(path, opts);
+        return res;
+    }
+
+    (async function init() {
+        if (!token) return;
+        try {
+            const res = await api("/auth/me", { method: "GET" });
+            if (!res.ok) return;
+            const json = await res.json();
+            twofaContainer.style.display = "block";
+            twofaCheckbox.checked = !!json.totpEnabled;
+        } catch (e) {}
+    })();
+
+    twofaCheckbox.addEventListener("change", async () => {
+        err.innerText = ""; msg.innerText = "";
+        // enabling
+        if (twofaCheckbox.checked) {
+            if (!confirm("Enable 2FA?")) { twofaCheckbox.checked = false; return; }
+            const r = await api("/auth/2fa/setup-loggedin", { method: "POST", body: "{}" });
+            if (!r.ok) {
+                err.innerText = "Failed to start setup";
+                twofaCheckbox.checked = false;
+                return;
+            }
+            const data = await r.json();
+            qr.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data.otpAuthUrl)}">`;
+            setupBox.style.display = "block";
+            confirmBtn.disabled = false;
+        } else {
+            if (!confirm("Disable 2FA?")) { twofaCheckbox.checked = true; return; }
+            const r = await api("/auth/2fa/disable-loggedin", { method: "POST", body: "{}" });
+            if (!r.ok) {
+                err.innerText = "Disable failed";
+                twofaCheckbox.checked = true;
+                return;
+            }
+            msg.innerText = "2FA disabled";
+        }
+    });
+
+    cancelBtn.addEventListener("click", () => {
+        setupBox.style.display = "none";
+        qr.innerHTML = "";
+        codeInput.value = "";
+        twofaCheckbox.checked = false;
+    });
+
+    confirmBtn.addEventListener("click", async () => {
+        err.innerText = ""; msg.innerText = "";
+        confirmBtn.disabled = true;
+        const code = codeInput.value.trim();
+        if (!code) { err.innerText = "Enter code"; confirmBtn.disabled = false; return; }
+        const r = await api("/auth/2fa/confirm-loggedin", {
+            method: "POST",
+            body: JSON.stringify({ code })
+        });
+        if (!r.ok) {
+            err.innerText = "Invalid code";
+            confirmBtn.disabled = false;
+            return;
+        }
+        setupBox.style.display = "none";
+        qr.innerHTML = "";
+        codeInput.value = "";
+        msg.innerText = "2FA enabled";
+        twofaCheckbox.checked = true;
+    });
 </script>
-
-
 </body>
 </html>
