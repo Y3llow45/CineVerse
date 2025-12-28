@@ -19,6 +19,11 @@ public class PageController {
     private final AuthService authService;
     private final com.example.CineVerse.repository.UserRepository userRepository;
 
+    @GetMapping("/error/401")
+    public String error401() {
+        return "error/401";
+    }
+
     @GetMapping("/cat")
     public String cat() {return "cat";}
 
