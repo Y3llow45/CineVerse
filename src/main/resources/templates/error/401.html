@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>401 Unauthorized</title>
+    <style>
+        body {
+            font-family: serif;
+            background: #fff;
+            color: #000;
+            padding: 40px;
+        }
+
+        .box {
+            max-width: 500px;
+            border: 1px solid #000;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-top: 0;
+        }
+
+        button {
+            margin-top: 15px;
+            padding: 4px 10px;
+            font-family: serif;
+            cursor: pointer;
+        }
+
+        a {
+            color: purple;
+        }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h1>401</h1>
+
+    <p>
+        Nice try<br>
+        This area is for admins only.
+    </p>
+
+    <p>
+        You don’t have the magical powers required to be here.
+    </p>
+
+    <p>
+        Redirecting you back to safety in <span id="count">5</span> seconds...
+    </p>
+
+    <button onclick="goHome()">Take me home</button>
+</div>
+
+<script>
+    let seconds = 5;
+    const el = document.getElementById('count');
+
+    const timer = setInterval(() => {
+        seconds--;
+        el.textContent = seconds;
+
+        if (seconds <= 0) {
+            clearInterval(timer);
+            window.location.href = '/home';
+        }
+    }, 1000);
+
+    function goHome() {
+        window.location.href = '/home';
+    }
+</script>
+
+</body>
+</html>
