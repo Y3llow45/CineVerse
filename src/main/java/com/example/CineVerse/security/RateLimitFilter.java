@@ -44,10 +44,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
         } else {
             response.setStatus(429);
-            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            response.getWriter().write("""
-                {"error":"Too many requests. Please try again later."}
-            """);
+            request.getRequestDispatcher("/error/429").forward(request, response);
         }
     }
 
@@ -69,6 +66,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return Bandwidth.classic(3, Refill.greedy(3, Duration.ofMinutes(1)));
         }
 
-        return null; // no rate limit
+        if (path.equals("/cat")) {
+            return Bandwidth.classic(3, Refill.greedy(3, Duration.ofMinutes(1)));
+        }
+
+        return null;
     }
 }

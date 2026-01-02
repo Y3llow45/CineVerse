@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>429 Too Many Requests</title>
+    <style>
+        body {
+            font-family: serif;
+            background: #fff;
+            color: #000;
+            padding: 40px;
+        }
+        .box {
+            max-width: 500px;
+            border: 1px solid #000;
+            padding: 20px;
+        }
+        h1 { margin-top: 0; }
+        button {
+            margin-top: 15px;
+            padding: 4px 10px;
+            font-family: serif;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h1>429</h1>
+    <p>Whoa there 🚦</p>
+    <p>You’re clicking a bit too fast.</p>
+
+    <p>
+        Try again in <span id="count">5</span> seconds…
+    </p>
+
+    <button onclick="goHome()">Go home now</button>
+</div>
+
+<script>
+    let s = 5;
+    const el = document.getElementById('count');
+
+    const t = setInterval(() => {
+        s--;
+        el.textContent = s;
+        if (s <= 0) {
+            clearInterval(t);
+            window.location.href = '/login';
+        }
+    }, 1000);
+
+    function goHome() {
+        window.location.href = '/login';
+    }
+</script>
+
+</body>
+</html>

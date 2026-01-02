@@ -24,6 +24,11 @@ public class PageController {
         return "error/401";
     }
 
+    @GetMapping("/error/429")
+    public String tooManyRequests() {
+        return "error/429";
+    }
+
     @GetMapping("/cat")
     public String cat() {return "cat";}
 
