@@ -10,17 +10,26 @@
             color: #000;
             padding: 40px;
         }
+
         .box {
             max-width: 500px;
             border: 1px solid #000;
             padding: 20px;
         }
-        h1 { margin-top: 0; }
+
+        h1 {
+            margin-top: 0;
+        }
+
         button {
             margin-top: 15px;
             padding: 4px 10px;
             font-family: serif;
             cursor: pointer;
+        }
+
+        a {
+            color: purple;
         }
     </style>
 </head>
@@ -28,31 +37,19 @@
 
 <div class="box">
     <h1>429</h1>
-    <p>Whoa there 🚦</p>
-    <p>You’re clicking a bit too fast.</p>
+    <p>Easy there, speedrunner.</p>
+    <p>You’re sending requests a bit too fast. Take a breath 😌</p>
 
-    <p>
-        Try again in <span id="count">5</span> seconds…
+    <button onclick="goHome()">Go home</button>
+
+    <p style="margin-top:15px;">
+        or <a href="/home">click here</a>
     </p>
-
-    <button onclick="goHome()">Go home now</button>
 </div>
 
 <script>
-    let s = 5;
-    const el = document.getElementById('count');
-
-    const t = setInterval(() => {
-        s--;
-        el.textContent = s;
-        if (s <= 0) {
-            clearInterval(t);
-            window.location.href = '/login';
-        }
-    }, 1000);
-
     function goHome() {
-        window.location.href = '/login';
+        window.location.href = '/home';
     }
 </script>
 
