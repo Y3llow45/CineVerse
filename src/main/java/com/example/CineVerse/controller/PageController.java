@@ -32,6 +32,9 @@ public class PageController {
     @GetMapping("/cat")
     public String cat() {return "cat";}
 
+    @GetMapping("/chat")
+    public String chat() {return "chat";}
+
     @GetMapping("/home")
     public String home() {
         return "home";
