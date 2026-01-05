@@ -16,58 +16,50 @@
             padding: 10px;
             box-sizing: border-box;
         }
-
         #users h3 {
             margin-top: 0;
         }
-
         .user {
             padding: 6px;
             cursor: pointer;
         }
-
         .user:hover {
             background: #f0f0f0;
         }
-
         #chat {
             flex: 1;
             display: flex;
             flex-direction: column;
         }
-
+        #error {
+            color: #b50000;
+        }
         #messages {
             flex: 1;
             padding: 10px;
             overflow-y: auto;
             border-bottom: 1px solid #ddd;
         }
-
         .msg {
             margin-bottom: 6px;
         }
-
         .me {
             text-align: right;
             color: #0055aa;
         }
-
         .them {
             text-align: left;
             color: #000;
         }
-
         #inputBox {
             display: flex;
             padding: 10px;
             gap: 6px;
         }
-
         input {
             flex: 1;
             padding: 6px;
         }
-
         button {
             padding: 6px 12px;
             cursor: pointer;
@@ -78,16 +70,16 @@
 
 <div id="users">
     <h3>Chats</h3>
-    <div class="user" onclick="openChat('alice')">alice</div>
-    <div class="user" onclick="openChat('bob')">bob</div>
+    <div id="userList"></div>
     <hr>
+    <div id="error"></div>
     <input id="newUser" placeholder="username" />
     <button onclick="startChat()">Start</button>
 </div>
 
 <div id="chat">
     <div id="messages">
-        <div class="msg muted">Select a user to start chatting</div>
+        <div class="msg">Select a user to start chatting</div>
     </div>
 
     <div id="inputBox">
@@ -98,31 +90,80 @@
 
 <script>
     let currentUser = null;
+    const error = document.getElementById('error');
 
-    function openChat(username) {
-        currentUser = username;
-        document.getElementById('messages').innerHTML = '';
-        addMsg(`Chat with ${username}`, 'them');
-        // load messages from backend
+    const clearErrors = () => {
+        error.innerText = '';
+      };
+
+    async function loadUsers() {
+        const res = await fetch('/api/chat/users');
+        if (!res.ok) return;
+        const users = await res.json();
+        const list = document.getElementById('userList');
+        list.innerHTML = '';
+        users.forEach(u => {
+            const div = document.createElement('div');
+            div.className = 'user';
+            div.textContent = u;
+            div.onclick = () => openChat(u);
+            list.appendChild(div);
+        });
     }
 
+    async function openChat(username) {
+    clearErrors();
+    currentUser = username;
+    const box = document.getElementById('messages');
+    box.innerHTML = '';
+    const res = await fetch('/api/chat/messages/' + encodeURIComponent(username));
+    if (res.ok) {
+        const msgs = await res.json();
+        msgs.forEach(m => {
+            addMsg(m.content, m.sender === username ? 'them' : 'me');
+        });
+        ensureUserInList(username);
+    } else {
+        const txt = await res.text();
+        error.innerText = txt || 'No such user found.';
+    }
+}
+
     function startChat() {
+        clearErrors();
         const u = document.getElementById('newUser').value.trim();
         if (!u) return;
         openChat(u);
         document.getElementById('newUser').value = '';
     }
 
-    function sendMessage() {
+    function ensureUserInList(username) {
+        const list = document.getElementById('userList');
+        // don't duplicate
+        if ([...list.children].some(c => c.textContent === username)) return;
+        const div = document.createElement('div');
+        div.className = 'user';
+        div.textContent = username;
+        div.onclick = () => openChat(username);
+        list.appendChild(div);
+    }
+
+
+    async function sendMessage() {
         if (!currentUser) return;
         const input = document.getElementById('messageInput');
         const text = input.value.trim();
         if (!text) return;
-
         addMsg(text, 'me');
         input.value = '';
-
-        // send via RabbitMQ
+        await fetch('/api/chat/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                receiver: currentUser,
+                content: text
+            })
+        });
     }
 
     function addMsg(text, cls) {
@@ -132,6 +173,8 @@
         document.getElementById('messages').appendChild(div);
         div.scrollIntoView();
     }
+
+    loadUsers();
 </script>
 
 </body>
