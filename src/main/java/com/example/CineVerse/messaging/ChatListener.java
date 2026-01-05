@@ -1,15 +1,20 @@
 package com.example.CineVerse.messaging;
 
+import com.example.CineVerse.entity.ChatMessage;
+import com.example.CineVerse.repository.ChatMessageRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
-@Component
+@Service
+@RequiredArgsConstructor
 public class ChatListener {
 
+    private final ChatMessageRepository repo;
+
     @RabbitListener(queues = RabbitConfig.CHAT_QUEUE)
-    public void receive(ChatMessage message) {
-        System.out.println(
-                "[" + message.from() + " → " + message.to() + "] " + message.content()
-        );
+    public void receive(ChatMessage msg) {
+        repo.save(msg);
     }
 }
+
