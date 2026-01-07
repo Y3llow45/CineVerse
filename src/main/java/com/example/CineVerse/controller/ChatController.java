@@ -24,12 +24,16 @@ public class ChatController {
 
     @GetMapping("/users")
     public List<String> users(@AuthenticationPrincipal UserDetails u) {
+
         return repo.findChatUsers(u.getUsername());
     }
 
     @GetMapping("/messages/{with}")
     public List<ChatMessage> messages(@AuthenticationPrincipal UserDetails u,
                                       @PathVariable String with) {
+        if (!userRepository.existsByUsername(with)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No such user");
+        }
         return repo.findConversation(u.getUsername(), with);
     }
 

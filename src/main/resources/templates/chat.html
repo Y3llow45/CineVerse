@@ -33,6 +33,8 @@
         }
         #error {
             color: #b50000;
+            min-height: 18px;
+            margin: 6px 0;
         }
         #messages {
             flex: 1;
@@ -64,6 +66,7 @@
             padding: 6px 12px;
             cursor: pointer;
         }
+        .muted { color:#666; font-size:0.9rem; }
     </style>
 </head>
 <body>
@@ -74,95 +77,53 @@
     <hr>
     <div id="error"></div>
     <input id="newUser" placeholder="username" />
-    <button onclick="startChat()">Start</button>
+    <button id="startBtn">Start</button>
 </div>
 
 <div id="chat">
     <div id="messages">
-        <div class="msg">Select a user to start chatting</div>
+        <div class="msg muted">Select a user to start chatting</div>
     </div>
 
     <div id="inputBox">
         <input id="messageInput" placeholder="Type a message…" />
-        <button onclick="sendMessage()">Send</button>
+        <button id="sendBtn">Send</button>
     </div>
 </div>
 
 <script>
     let currentUser = null;
-    const error = document.getElementById('error');
+    const errorEl = document.getElementById('error');
+    const userListEl = document.getElementById('userList');
+    const messagesEl = document.getElementById('messages');
+    const newUserInput = document.getElementById('newUser');
+    const startBtn = document.getElementById('startBtn');
+    const sendBtn = document.getElementById('sendBtn');
+    const messageInput = document.getElementById('messageInput');
 
-    const clearErrors = () => {
-        error.innerText = '';
-      };
+    function clearErrors() { errorEl.innerText = ''; }
 
-    async function loadUsers() {
-        const res = await fetch('/api/chat/users');
-        if (!res.ok) return;
-        const users = await res.json();
-        const list = document.getElementById('userList');
-        list.innerHTML = '';
-        users.forEach(u => {
-            const div = document.createElement('div');
-            div.className = 'user';
-            div.textContent = u;
-            div.onclick = () => openChat(u);
-            list.appendChild(div);
-        });
-    }
-
-    async function openChat(username) {
-    clearErrors();
-    currentUser = username;
-    const box = document.getElementById('messages');
-    box.innerHTML = '';
-    const res = await fetch('/api/chat/messages/' + encodeURIComponent(username));
-    if (res.ok) {
-        const msgs = await res.json();
-        msgs.forEach(m => {
-            addMsg(m.content, m.sender === username ? 'them' : 'me');
-        });
-        ensureUserInList(username);
-    } else {
-        const txt = await res.text();
-        error.innerText = txt || 'No such user found.';
-    }
-}
-
-    function startChat() {
-        clearErrors();
-        const u = document.getElementById('newUser').value.trim();
-        if (!u) return;
-        openChat(u);
-        document.getElementById('newUser').value = '';
-    }
-
-    function ensureUserInList(username) {
-        const list = document.getElementById('userList');
-        // don't duplicate
-        if ([...list.children].some(c => c.textContent === username)) return;
+    function addUserToList(username) {
+        if ([...userListEl.children].some(c => c.textContent === username)) return;
         const div = document.createElement('div');
         div.className = 'user';
         div.textContent = username;
         div.onclick = () => openChat(username);
-        list.appendChild(div);
+        userListEl.appendChild(div);
     }
 
-
-    async function sendMessage() {
-        if (!currentUser) return;
-        const input = document.getElementById('messageInput');
-        const text = input.value.trim();
-        if (!text) return;
-        addMsg(text, 'me');
-        input.value = '';
-        await fetch('/api/chat/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                receiver: currentUser,
-                content: text
-            })
+    function renderMessages(msgs, withUser) {
+        messagesEl.innerHTML = '';
+        if (!msgs || msgs.length === 0) {
+            const d = document.createElement('div');
+            d.className = 'msg muted';
+            d.textContent = 'No messages yet';
+            messagesEl.appendChild(d);
+            return;
+        }
+        msgs.forEach(m => {
+            const cls = m.sender === withUser ? 'them' : 'me';
+            addMsg(m.content, cls);
         });
     }
 
@@ -170,9 +131,69 @@
         const div = document.createElement('div');
         div.className = 'msg ' + cls;
         div.textContent = text;
-        document.getElementById('messages').appendChild(div);
-        div.scrollIntoView();
+        messagesEl.appendChild(div);
+        div.scrollIntoView({ block: "end" });
     }
+
+    async function loadUsers() {
+        clearErrors();
+        const res = await fetch('/api/chat/users');
+        if (!res.ok) return;
+        const users = await res.json();
+        userListEl.innerHTML = '';
+        users.forEach(u => addUserToList(u));
+    }
+
+    async function openChat(username) {
+        clearErrors();
+        const res = await fetch('/api/chat/messages/' + encodeURIComponent(username));
+        if (!res.ok) {
+            errorEl.innerText = res.status === 400 ? 'No such user' : 'Server error';
+            return;
+        }
+        const msgs = await res.json();
+        currentUser = username;
+        renderMessages(msgs, username);
+        addUserToList(username);
+    }
+
+    startBtn.onclick = async () => {
+        clearErrors();
+        const u = newUserInput.value.trim();
+        if (!u) return;
+        const res = await fetch('/api/chat/messages/' + encodeURIComponent(u));
+        if (!res.ok) {
+            errorEl.innerText = res.status === 400 ? 'No such user' : 'Server error';
+            return;
+        }
+        const msgs = await res.json();
+        currentUser = u;
+        renderMessages(msgs, u);
+        addUserToList(u);
+        newUserInput.value = '';
+    };
+
+    sendBtn.onclick = async () => {
+        clearErrors();
+        if (!currentUser) return;
+        const text = messageInput.value.trim();
+        if (!text) return;
+        const res = await fetch('/api/chat/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ receiver: currentUser, content: text })
+        });
+        if (!res.ok) {
+            errorEl.innerText = res.status === 400 ? 'No such user' : 'Server error';
+            return;
+        }
+        addMsg(text, 'me');
+        messageInput.value = '';
+    };
+
+    messageInput.onkeydown = e => {
+        if (e.key === 'Enter') sendBtn.click();
+    };
 
     loadUsers();
 </script>
