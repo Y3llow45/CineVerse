@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import com.example.CineVerse.security.RateLimitFilter;
+import com.example.CineVerse.service.impl.OAuth2UserService;
 
 @EnableMethodSecurity
 @Configuration
@@ -24,6 +25,7 @@ public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
     private final JwtTokenProvider jwtTokenProvider;
+    private final OAuth2UserService oAuth2UserService;
 
     @Bean
     public RateLimitFilter rateLimitFilter() {
@@ -72,9 +74,11 @@ public class SecurityConfig {
                         .failureUrl("/login?error=true")
                 )
                 .oauth2Login(oauth2 -> oauth2
-                                .loginPage("/login")
-                                .defaultSuccessUrl("/home", true)
-                        // Optional: .failureUrl("/login?error=true")
+                        .loginPage("/login")
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .userService(oAuth2UserService)
+                        )
+                        .defaultSuccessUrl("/home", true)
                 )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
