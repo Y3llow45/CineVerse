@@ -1,5 +1,6 @@
 package com.example.CineVerse.entity;
 
+import com.example.CineVerse.service.impl.AuthProvider;
 import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -45,6 +46,8 @@ public class User {
 
     private String profilePictureUrl;
     private String bio;
+
+    private AuthProvider authProvider;
 
     @Column(nullable = false)
     private LocalDateTime updatedAt;
