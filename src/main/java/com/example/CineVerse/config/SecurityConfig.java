@@ -1,5 +1,6 @@
 package com.example.CineVerse.config;
 
+import com.example.CineVerse.handlers.OAuth2AuthFailureHandler;
 import com.example.CineVerse.security.CustomUserDetailsService;
 import com.example.CineVerse.security.JwtAuthenticationFilter;
 import com.example.CineVerse.security.JwtTokenProvider;
@@ -26,6 +27,8 @@ public class SecurityConfig {
     private final CustomUserDetailsService userDetailsService;
     private final JwtTokenProvider jwtTokenProvider;
     private final OAuth2UserService oAuth2UserService;
+    private final OAuth2AuthSuccessHandler oauth2SuccessHandler;
+    private final OAuth2AuthFailureHandler oauth2FailureHandler;
 
     @Bean
     public RateLimitFilter rateLimitFilter() {
