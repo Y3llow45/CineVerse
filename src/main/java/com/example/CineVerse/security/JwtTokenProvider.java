@@ -29,18 +29,14 @@ public class JwtTokenProvider {
     }
 
     public String generateToken(Authentication authentication) {
-        UserDetails user = (UserDetails) authentication.getPrincipal();
+        String username = authentication.getName();
         Date now = new Date();
         Date expiry = new Date(now.getTime() + jwtExpirationMs);
 
         return Jwts.builder()
-                .setSubject(user.getUsername())
-                .claim("roles",
-                        user.getAuthorities()
-                                .stream()
-                                .map(GrantedAuthority::getAuthority)
-                                .toList()
-                )
+                .setSubject(username)
+                .claim("roles", authentication.getAuthorities().stream()
+                        .map(GrantedAuthority::getAuthority).toList())
                 .setIssuedAt(now)
                 .setExpiration(expiry)
                 .signWith(key(), SignatureAlgorithm.HS256)

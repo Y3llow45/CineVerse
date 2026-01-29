@@ -47,7 +47,12 @@ public class OAuth2AuthSuccessHandler implements AuthenticationSuccessHandler {
         cookie.setHttpOnly(true);
         cookie.setPath("/");
         cookie.setMaxAge((int) 86400);
-        response.addCookie(cookie);
+        response.addHeader("Set-Cookie",
+                String.format("AUTH_TOKEN=%s; Path=/; HttpOnly; Max-Age=%d; SameSite=Lax%s",
+                        token,
+                        86400,
+                        cookie.getSecure() ? "; Secure" : "")
+        );
 
         response.sendRedirect("/home");
     }
