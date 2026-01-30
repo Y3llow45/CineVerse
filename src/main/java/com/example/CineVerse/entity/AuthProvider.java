@@ -1,3 +1,3 @@
-package com.example.CineVerse.service.impl;
+package com.example.CineVerse.entity;
 
 public enum AuthProvider { LOCAL, GOOGLE }
