@@ -53,7 +53,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, OAuth2UserService customOAuth2UserService) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session
@@ -67,30 +67,29 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/admin").hasRole("ADMIN")
                         .anyRequest().authenticated()
-                        ).exceptionHandling(ex -> ex
+                )
+                .exceptionHandling(ex -> ex
                         .accessDeniedPage("/error/401")
-
                 )
                 .formLogin(form -> form
                         .loginPage("/login")
                         .loginProcessingUrl("/login")
-                        .defaultSuccessUrl("/home", true)
-                        .failureUrl("/login?error=true")
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .loginPage("/login")
-                        .userInfoEndpoint(userInfo -> userInfo
-                                .oidcUserService(customOAuth2UserService)
-                        )
-                        .defaultSuccessUrl("/home", true)
+                        .userInfoEndpoint(u -> u.oidcUserService(oAuth2UserService))
+                        .successHandler(oauth2SuccessHandler)
+                        .failureHandler(oauth2FailureHandler)
                 )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/login?logout=true")
                         .permitAll()
                 );
+
         http.addFilterBefore(rateLimitFilter(), UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
     }
 }

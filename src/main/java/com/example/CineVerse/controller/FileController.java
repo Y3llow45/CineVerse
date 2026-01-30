@@ -33,6 +33,7 @@ public class FileController {
                        @RequestParam(required = false) String success) {
 
         String username = auth.getName();
+        System.out.println(username); //this
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("user not found"));
 
