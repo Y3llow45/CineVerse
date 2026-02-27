@@ -1,5 +1,5 @@
 # CineVerse
-### Spring project with main focus on server logic
+### Spring project with primary focus on server logic
 <hr>
 
 ### Implemented functionalities:
